@@ -1,0 +1,100 @@
+{% extends "base.html" %}
+{% block title %}Inventory{% endblock %}
+{% block topbar_title %}Inventory{% endblock %}
+{% block content %}
+<div class="page-header">
+  <h1>Inventory</h1>
+  <p>All drug batches with expiry status and stock levels.</p>
+</div>
+
+<div style="display:flex;gap:.75rem;align-items:center;margin-bottom:1.25rem;flex-wrap:wrap">
+  <form style="display:flex;gap:.5rem;flex:1;min-width:200px" method="GET">
+    <input name="q" value="{{ search }}" placeholder="Search drug or batch ID..." style="max-width:260px">
+    <select name="status" style="width:auto">
+      <option value="">All Status</option>
+      <option value="expired" {% if status_filter=='expired' %}selected{% endif %}>Expired</option>
+      <option value="critical" {% if status_filter=='critical' %}selected{% endif %}>Critical</option>
+      <option value="warning" {% if status_filter=='warning' %}selected{% endif %}>Warning</option>
+      <option value="good" {% if status_filter=='good' %}selected{% endif %}>Good</option>
+    </select>
+    <button type="submit" class="btn btn-primary">Filter</button>
+    <a href="{{ url_for('inventory') }}" class="btn btn-ghost">Clear</a>
+  </form>
+  <button class="btn btn-primary" onclick="document.getElementById('addBatchModal').classList.add('open')">+ Add Batch</button>
+</div>
+
+<div class="card">
+  <table>
+    <thead>
+      <tr><th>Batch</th><th>Drug</th><th>Category</th><th>Supplier</th><th>Exp Date</th><th>Qty</th><th>Status</th><th>Actions</th></tr>
+    </thead>
+    <tbody>
+    {% for r in rows %}
+    <tr>
+      <td style="font-family:var(--font-mono);font-size:.72rem">{{ r.batch_id }}<br><small style="color:var(--muted)">{{ r.location }}</small></td>
+      <td style="font-weight:600">{{ r.drug_name }}<br><small style="color:var(--muted);font-size:.7rem">{{ r.manufacturer }}</small></td>
+      <td>{{ r.category }}</td>
+      <td>{{ r.supplier or '—' }}</td>
+      <td>
+        {{ r.exp_date }}
+        <br><small style="font-family:var(--font-mono);font-size:.65rem;color:{% if r.days_left < 0 %}var(--red){% elif r.days_left < 30 %}var(--orange){% elif r.days_left < 90 %}var(--yellow){% else %}var(--muted){% endif %}">
+          {% if r.days_left < 0 %}{{ r.days_left|abs }}d overdue{% else %}{{ r.days_left }}d left{% endif %}
+        </small>
+      </td>
+      <td style="font-weight:700">{{ r.quantity }}</td>
+      <td><span class="badge badge-{{ r.status }}">{{ r.status }}</span></td>
+      <td>
+        <form method="POST" action="{{ url_for('update_qty') }}" style="display:flex;gap:.3rem;align-items:center">
+          <input type="hidden" name="batch_id" value="{{ r.batch_id }}">
+          <input type="number" name="quantity" value="{{ r.quantity }}" min="0" style="width:70px;padding:.25rem .4rem;font-size:.72rem">
+          <button type="submit" class="btn btn-ghost btn-sm">Update</button>
+        </form>
+      </td>
+    </tr>
+    {% else %}
+    <tr><td colspan="8"><div class="empty-msg">No batches found</div></td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<!-- Add Batch Modal -->
+<div class="modal-overlay" id="addBatchModal">
+  <div class="modal">
+    <div class="modal-header">
+      <h3>Add New Batch</h3>
+      <button class="modal-close" onclick="document.getElementById('addBatchModal').classList.remove('open')">×</button>
+    </div>
+    <form method="POST" action="{{ url_for('add_batch') }}">
+      <div class="modal-body">
+        <div class="form-row">
+          <div class="form-group"><label>Batch ID</label><input name="batch_id" placeholder="B010" required></div>
+          <div class="form-group"><label>Drug</label>
+            <select name="drug_id" required>
+              {% for d in drugs %}<option value="{{ d.drug_id }}">{{ d.name }}</option>{% endfor %}
+            </select>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group"><label>Supplier</label>
+            <select name="supplier_id">
+              <option value="">No supplier</option>
+              {% for s in suppliers %}<option value="{{ s.supplier_id }}">{{ s.name }}</option>{% endfor %}
+            </select>
+          </div>
+          <div class="form-group"><label>Location</label><input name="location" placeholder="Rack A1"></div>
+        </div>
+        <div class="form-row">
+          <div class="form-group"><label>Mfg Date</label><input type="date" name="mfg_date" required></div>
+          <div class="form-group"><label>Exp Date</label><input type="date" name="exp_date" required></div>
+        </div>
+        <div class="form-group"><label>Quantity</label><input type="number" name="quantity" min="1" required></div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-ghost" onclick="document.getElementById('addBatchModal').classList.remove('open')">Cancel</button>
+        <button type="submit" class="btn btn-primary">Add Batch</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

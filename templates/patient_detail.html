@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% block title %}{{ patient.name }}{% endblock %}
+{% block topbar_title %}Patient Detail{% endblock %}
+{% block content %}
+<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.5rem;flex-wrap:wrap;gap:.75rem">
+  <div>
+    <h1 style="font-size:1.5rem;font-weight:800">{{ patient.name }}</h1>
+    <div style="font-family:var(--font-mono);font-size:.68rem;color:var(--muted)">{{ patient.patient_id }} · Joined {{ patient.created_at[:10] }}</div>
+  </div>
+  <a href="{{ url_for('patients') }}" class="btn btn-ghost">← Back</a>
+</div>
+<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:1rem;margin-bottom:1.5rem">
+  <div class="stat stat-accent"><div class="stat-label">Total Spent</div><div class="stat-val" style="color:var(--accent);font-size:1.3rem">₹{{ "%.0f"|format(total_spent) }}</div></div>
+  <div class="stat"><div class="stat-label">Bills</div><div class="stat-val">{{ bills|length }}</div></div>
+  <div class="stat"><div class="stat-label">Phone</div><div class="stat-val" style="font-size:1rem;font-family:var(--font-mono)">{{ patient.phone or '—' }}</div></div>
+</div>
+<div class="card">
+  <div class="card-header"><h3>Purchase History</h3></div>
+  <table>
+    <thead><tr><th>Bill No</th><th>Date</th><th>Items</th><th>Total</th><th>Payment</th><th></th></tr></thead>
+    <tbody>
+    {% for b in bills %}
+    <tr>
+      <td style="font-family:var(--font-mono);font-size:.7rem"><a href="{{ url_for('bill_detail',bill_id=b.bill_id) }}" style="color:var(--accent);text-decoration:none">{{ b.bill_number }}</a></td>
+      <td style="font-size:.78rem">{{ b.bill_date[:10] }}</td>
+      <td style="font-family:var(--font-mono)">{{ b.item_count }}</td>
+      <td style="font-weight:700">₹{{ "%.2f"|format(b.total) }}</td>
+      <td><span class="badge badge-info">{{ b.payment_method }}</span></td>
+      <td><a href="{{ url_for('download_pdf',bill_id=b.bill_id) }}" class="btn btn-ghost btn-sm">PDF</a></td>
+    </tr>
+    {% else %}
+    <tr><td colspan="6"><div class="empty-msg">No bills yet</div></td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

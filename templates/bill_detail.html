@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+{% block title %}{{ bill.bill_number }}{% endblock %}
+{% block topbar_title %}Bill Detail{% endblock %}
+{% block content %}
+<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.5rem;flex-wrap:wrap;gap:.75rem">
+  <div><h1 style="font-size:1.5rem;font-weight:800">{{ bill.bill_number }}</h1><p style="color:var(--muted);font-size:.82rem">{{ bill.bill_date[:16] }}</p></div>
+  <div style="display:flex;gap:.5rem">
+    <a href="{{ url_for('bills') }}" class="btn btn-ghost">← Back</a>
+    <a href="{{ url_for('download_pdf',bill_id=bill.bill_id) }}" class="btn btn-primary">Download PDF</a>
+  </div>
+</div>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:1.25rem;margin-bottom:1.25rem">
+  <div class="card">
+    <div class="card-header"><h3>Patient</h3></div>
+    <div class="card-body">
+      <div style="font-size:1rem;font-weight:700;margin-bottom:.25rem">{{ bill.patient_name }}</div>
+      <div style="font-family:var(--font-mono);font-size:.68rem;color:var(--muted)">{{ bill.patient_phone or 'Walk-in' }}</div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-header"><h3>Transaction</h3></div>
+    <div class="card-body">
+      <div style="display:flex;justify-content:space-between;margin-bottom:.4rem;font-size:.82rem"><span style="color:var(--muted)">Payment</span><span class="badge badge-info">{{ bill.payment_method }}</span></div>
+      <div style="display:flex;justify-content:space-between;font-size:.82rem"><span style="color:var(--muted)">Billed by</span><span style="font-family:var(--font-mono);font-size:.72rem">{{ bill.billed_by }}</span></div>
+    </div>
+  </div>
+</div>
+<div class="card" style="margin-bottom:1.25rem">
+  <div class="card-header"><h3>Items</h3></div>
+  <table>
+    <thead><tr><th>Medicine</th><th>Batch</th><th>Qty</th><th>Unit Price</th><th>Amount</th></tr></thead>
+    <tbody>
+    {% for item in items %}
+    <tr>
+      <td style="font-weight:600">{{ item.drug_name }}</td>
+      <td style="font-family:var(--font-mono);font-size:.7rem">{{ item.batch_id }}</td>
+      <td>{{ item.quantity }}</td>
+      <td>₹{{ "%.2f"|format(item.unit_price) }}</td>
+      <td style="font-weight:700">₹{{ "%.2f"|format(item.amount) }}</td>
+    </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</div>
+<div class="card" style="max-width:320px;margin-left:auto">
+  <div class="card-body">
+    <div style="display:flex;justify-content:space-between;color:var(--muted);font-size:.82rem;margin-bottom:.35rem"><span>Subtotal</span><span>₹{{ "%.2f"|format(bill.subtotal) }}</span></div>
+    {% if bill.discount > 0 %}<div style="display:flex;justify-content:space-between;color:var(--muted);font-size:.82rem;margin-bottom:.35rem"><span>Discount</span><span>-₹{{ "%.2f"|format(bill.discount) }}</span></div>{% endif %}
+    {% if bill.gst_amount > 0 %}<div style="display:flex;justify-content:space-between;color:var(--muted);font-size:.82rem;margin-bottom:.35rem"><span>GST ({{ bill.gst_pct }}%)</span><span>₹{{ "%.2f"|format(bill.gst_amount) }}</span></div>{% endif %}
+    <div style="display:flex;justify-content:space-between;font-size:1.2rem;font-weight:800;color:var(--green);border-top:1px solid var(--border);padding-top:.5rem;margin-top:.5rem"><span>TOTAL</span><span>₹{{ "%.2f"|format(bill.total) }}</span></div>
+  </div>
+</div>
+{% endblock %}

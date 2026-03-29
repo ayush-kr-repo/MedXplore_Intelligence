@@ -1,0 +1,13 @@
+drug_name,category,manufacturer,price,batch_id,mfg_date,exp_date,quantity,location,supplier_name
+Paracetamol,Analgesic,Cipla,12.00,B-PC-001,2024-01-01,2026-06-01,500,Rack A1,MedSupply Co.
+Paracetamol,Analgesic,Cipla,12.00,B-PC-002,2023-11-01,2025-03-20,1200,Rack A2,MedSupply Co.
+Amoxicillin,Antibiotic,Sun Pharma,45.00,B-AM-001,2023-06-01,2025-06-01,500,Rack B1,PharmaDist
+Amoxicillin,Antibiotic,Sun Pharma,45.00,B-AM-002,2024-01-15,2026-01-15,300,Rack B2,PharmaDist
+Metformin,Antidiabetic,Dr. Reddys,38.00,B-MF-001,2022-05-10,2025-02-05,80,Rack C1,HealthBridge
+Metformin,Antidiabetic,Dr. Reddys,38.00,B-MF-002,2023-09-15,2025-02-28,40,Rack C2,HealthBridge
+Atorvastatin,Statin,Pfizer,95.00,B-AT-001,2024-03-01,2026-03-01,450,Rack D1,PharmaDist
+Omeprazole,Antacid,Zydus,28.00,B-OM-001,2023-08-20,2025-04-10,220,Rack E1,MedSupply Co.
+Cetirizine,Antihistamine,Abbott,22.00,B-CT-001,2024-02-14,2027-02-14,600,Rack F3,HealthBridge
+Azithromycin,Antibiotic,Cipla,85.00,B-AZ-001,2024-04-01,2026-04-01,350,Rack G1,MedSupply Co.
+Aspirin,Analgesic,Bayer,8.00,B-AS-001,2024-06-01,2027-06-01,800,Rack H1,PharmaDist
+Losartan,Antihypertensive,Lupin,55.00,B-LS-001,2023-12-01,2025-12-01,200,Rack I1,HealthBridge

@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block title %}Audit Log{% endblock %}
+{% block topbar_title %}Audit Log{% endblock %}
+{% block content %}
+<div class="page-header"><h1>Audit Log</h1><p>Every database change auto-logged by SQL triggers. Agent actions included.</p></div>
+<div class="card">
+  <table>
+    <thead><tr><th>Timestamp</th><th>Action</th><th>Table</th><th>Record</th><th>Details</th><th>By</th></tr></thead>
+    <tbody>
+    {% for log in logs %}
+    <tr>
+      <td style="font-family:var(--font-mono);font-size:.65rem;color:var(--muted)">{{ log.timestamp }}</td>
+      <td>
+        <span class="badge {% if log.action=='INSERT' %}badge-good{% elif log.action=='DELETE' %}badge-expired{% elif 'AGENT' in log.action %}badge-info{% else %}badge-warning{% endif %}">
+          {{ log.action }}
+        </span>
+      </td>
+      <td style="font-family:var(--font-mono);font-size:.7rem">{{ log.table_name }}</td>
+      <td style="font-family:var(--font-mono);font-size:.7rem;color:var(--accent)">{{ log.record_id }}</td>
+      <td style="font-size:.75rem;color:var(--muted);max-width:280px">{{ log.details }}</td>
+      <td style="font-family:var(--font-mono);font-size:.68rem">{{ log.done_by }}</td>
+    </tr>
+    {% else %}
+    <tr><td colspan="6"><div class="empty-msg">No audit entries</div></td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

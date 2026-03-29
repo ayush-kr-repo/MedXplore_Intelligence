@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% block title %}Drugs{% endblock %}
+{% block topbar_title %}Drug Registry{% endblock %}
+{% block content %}
+<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:1.5rem;flex-wrap:wrap;gap:.75rem">
+  <div class="page-header" style="margin:0"><h1>Drug Registry</h1><p>All registered drugs and their inventory summary.</p></div>
+  <button class="btn btn-primary" onclick="document.getElementById('addDrugModal').classList.add('open')">+ Register Drug</button>
+</div>
+<div class="card">
+  <table>
+    <thead><tr><th>Drug</th><th>Category</th><th>Manufacturer</th><th>Price</th><th>Batches</th><th>Total Stock</th>{% if session.user.role=='admin' %}<th></th>{% endif %}</tr></thead>
+    <tbody>
+    {% for d in drugs %}
+    <tr>
+      <td style="font-weight:700">{{ d.name }}</td>
+      <td>{{ d.category }}</td>
+      <td style="color:var(--muted)">{{ d.manufacturer }}</td>
+      <td style="font-family:var(--font-mono);font-size:.78rem">₹{{ "%.2f"|format(d.price) }}</td>
+      <td style="font-family:var(--font-mono)">{{ d.batches }}</td>
+      <td style="font-weight:700;color:{% if d.total_qty < 100 %}var(--orange){% else %}var(--text){% endif %}">{{ d.total_qty }}</td>
+      {% if session.user.role=='admin' %}
+      <td><a href="{{ url_for('delete_drug',drug_id=d.drug_id) }}" class="btn btn-danger btn-sm" onclick="return confirm('Delete drug and all batches?')">Delete</a></td>
+      {% endif %}
+    </tr>
+    {% else %}
+    <tr><td colspan="7"><div class="empty-msg">No drugs registered</div></td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<div class="modal-overlay" id="addDrugModal">
+  <div class="modal">
+    <div class="modal-header"><h3>Register New Drug</h3><button class="modal-close" onclick="document.getElementById('addDrugModal').classList.remove('open')">×</button></div>
+    <form method="POST" action="{{ url_for('add_drug') }}">
+      <div class="modal-body">
+        <div class="form-group"><label>Drug Name</label><input name="name" placeholder="e.g. Amoxicillin" required></div>
+        <div class="form-row">
+          <div class="form-group"><label>Category</label><input name="category" placeholder="Antibiotic"></div>
+          <div class="form-group"><label>Manufacturer</label><input name="manufacturer" placeholder="Sun Pharma"></div>
+        </div>
+        <div class="form-group"><label>Unit Price (₹)</label><input type="number" name="price" step="0.01" min="0" placeholder="0.00"></div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-ghost" onclick="document.getElementById('addDrugModal').classList.remove('open')">Cancel</button>
+        <button type="submit" class="btn btn-primary">Register</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

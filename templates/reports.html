@@ -1,0 +1,88 @@
+{% extends "base.html" %}
+{% block title %}Reports{% endblock %}
+{% block topbar_title %}Financial Reports{% endblock %}
+{% block content %}
+<div class="page-header"><h1>Reports</h1><p>Financial and inventory analytics overview.</p></div>
+
+<div class="stat-grid" style="margin-bottom:1.75rem">
+  <div class="stat stat-danger"><div class="stat-label">Expired Loss</div><div class="stat-val" style="color:var(--red);font-size:1.2rem">₹{{ "%.0f"|format(stats.expired_loss) }}</div><div class="stat-sub">Confirmed write-off</div></div>
+  <div class="stat stat-warn"><div class="stat-label">At-Risk Value</div><div class="stat-val" style="color:var(--orange);font-size:1.2rem">₹{{ "%.0f"|format(stats.expiring_risk) }}</div><div class="stat-sub">Expiring in 90d</div></div>
+  <div class="stat stat-accent"><div class="stat-label">Total Revenue</div><div class="stat-val" style="color:var(--accent);font-size:1.2rem">₹{{ "%.0f"|format(stats.revenue) }}</div><div class="stat-sub">All-time billing</div></div>
+  <div class="stat stat-green"><div class="stat-label">Good Stock</div><div class="stat-val" style="color:var(--green)">{{ stats.good }}</div><div class="stat-sub">Healthy batches</div></div>
+</div>
+
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:1.25rem">
+  <div class="card">
+    <div class="card-header"><h3>Expiry Status Distribution</h3></div>
+    <div class="card-body">
+    {% for r in status_dist %}
+    {% set color = {'expired':'var(--red)','critical':'var(--orange)','warning':'var(--yellow)','good':'var(--green)'}[r.status] %}
+    <div style="margin-bottom:.85rem">
+      <div style="display:flex;justify-content:space-between;font-size:.78rem;margin-bottom:.3rem">
+        <span><span class="badge badge-{{ r.status }}">{{ r.status }}</span></span>
+        <span style="font-family:var(--font-mono);font-size:.7rem">{{ r.cnt }} batches · {{ r.qty or 0 }} units</span>
+      </div>
+      <div style="height:6px;background:var(--surface2);border-radius:3px;overflow:hidden">
+        <div style="height:100%;width:{{ [(r.cnt / stats.total * 100)|int, 100]|min }}%;background:{{ color }};border-radius:3px"></div>
+      </div>
+    </div>
+    {% endfor %}
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header"><h3>Revenue by Payment Method</h3></div>
+    <div class="card-body">
+    {% set total_rev = pay_dist|sum(attribute='revenue') or 1 %}
+    {% for p in pay_dist %}
+    <div style="margin-bottom:.85rem">
+      <div style="display:flex;justify-content:space-between;font-size:.78rem;margin-bottom:.3rem">
+        <span style="font-weight:600">{{ p.payment_method }}</span>
+        <span style="font-family:var(--font-mono);font-size:.7rem">{{ p.cnt }} bills · ₹{{ "%.0f"|format(p.revenue) }}</span>
+      </div>
+      <div style="height:6px;background:var(--surface2);border-radius:3px;overflow:hidden">
+        <div style="height:100%;width:{{ [(p.revenue / total_rev * 100)|int, 100]|min }}%;background:var(--accent);border-radius:3px"></div>
+      </div>
+    </div>
+    {% else %}<div class="empty-msg">No billing data</div>
+    {% endfor %}
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header"><h3>Stock by Category</h3></div>
+    <div class="card-body" style="padding:0">
+      <table>
+        <thead><tr><th>Category</th><th>Batches</th><th>Total Units</th></tr></thead>
+        <tbody>
+        {% for r in cat_dist %}
+        <tr>
+          <td style="font-weight:600">{{ r.category }}</td>
+          <td style="font-family:var(--font-mono)">{{ r.batches }}</td>
+          <td style="font-weight:700">{{ r.total_qty }}</td>
+        </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header"><h3>Stock by Supplier</h3></div>
+    <div class="card-body" style="padding:0">
+      <table>
+        <thead><tr><th>Supplier</th><th>Batches</th><th>Total Units</th></tr></thead>
+        <tbody>
+        {% for r in sup_dist %}
+        <tr>
+          <td style="font-weight:600">{{ r.name }}</td>
+          <td style="font-family:var(--font-mono)">{{ r.batches }}</td>
+          <td style="font-weight:700">{{ r.total_qty }}</td>
+        </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

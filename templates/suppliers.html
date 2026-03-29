@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% block title %}Suppliers{% endblock %}
+{% block topbar_title %}Suppliers{% endblock %}
+{% block content %}
+<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:1.5rem;flex-wrap:wrap;gap:.75rem">
+  <div class="page-header" style="margin:0"><h1>Suppliers</h1><p>Vendor directory and batch distribution.</p></div>
+  <button class="btn btn-primary" onclick="document.getElementById('addSupModal').classList.add('open')">+ Add Supplier</button>
+</div>
+<div class="card">
+  <table>
+    <thead><tr><th>Name</th><th>Contact</th><th>Address</th><th>Batches</th></tr></thead>
+    <tbody>
+    {% for s in suppliers %}
+    <tr>
+      <td style="font-weight:700">{{ s.name }}</td>
+      <td style="font-family:var(--font-mono);font-size:.72rem">{{ s.contact or '—' }}</td>
+      <td style="color:var(--muted);font-size:.8rem">{{ s.address or '—' }}</td>
+      <td style="font-family:var(--font-mono)">{{ s.batch_count }}</td>
+    </tr>
+    {% else %}
+    <tr><td colspan="4"><div class="empty-msg">No suppliers</div></td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</div>
+<div class="modal-overlay" id="addSupModal">
+  <div class="modal">
+    <div class="modal-header"><h3>Add Supplier</h3><button class="modal-close" onclick="document.getElementById('addSupModal').classList.remove('open')">×</button></div>
+    <form method="POST" action="{{ url_for('add_supplier') }}">
+      <div class="modal-body">
+        <div class="form-group"><label>Supplier Name</label><input name="name" required></div>
+        <div class="form-row">
+          <div class="form-group"><label>Contact</label><input name="contact"></div>
+          <div class="form-group"><label>Address</label><input name="address"></div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-ghost" onclick="document.getElementById('addSupModal').classList.remove('open')">Cancel</button>
+        <button type="submit" class="btn btn-primary">Add</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

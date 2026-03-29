@@ -1,0 +1,88 @@
+{% extends "base.html" %}
+{% block title %}Import Data{% endblock %}
+{% block topbar_title %}Bulk CSV Import{% endblock %}
+{% block content %}
+<div class="page-header">
+  <h1>Import Your Dataset</h1>
+  <p>Upload a CSV file to populate the system with your inventory data. Existing data is preserved.</p>
+</div>
+
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;align-items:start">
+  <div class="card">
+    <div class="card-header"><h3>Upload CSV File</h3></div>
+    <div class="card-body">
+      <form method="POST" enctype="multipart/form-data">
+        <div class="form-group">
+          <label>Select CSV File</label>
+          <input type="file" name="csvfile" accept=".csv" required style="padding:.4rem">
+        </div>
+        <p style="font-size:.75rem;color:var(--muted);line-height:1.6;margin-bottom:1rem">
+          The importer is flexible — it accepts any column names close to the expected ones.
+          Missing columns get sensible defaults. Duplicate batch IDs are replaced.
+        </p>
+        <button type="submit" class="btn btn-primary" style="width:100%">Import Dataset →</button>
+      </form>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header"><h3>Expected CSV Format</h3></div>
+    <div class="card-body">
+      <div style="font-family:var(--font-mono);font-size:.68rem;background:var(--surface2);border-radius:6px;padding:1rem;overflow-x:auto;line-height:1.8">
+        <div style="color:var(--accent)">drug_name, category, manufacturer, price,</div>
+        <div style="color:var(--accent)">batch_id, mfg_date, exp_date, quantity,</div>
+        <div style="color:var(--accent)">location, supplier_name</div>
+        <br>
+        <div style="color:var(--muted)">Paracetamol, Analgesic, Cipla, 12.00,</div>
+        <div style="color:var(--muted)">B-2024-001, 2024-01-01, 2026-01-01,</div>
+        <div style="color:var(--muted)">500, Rack A1, MedSupply Co.</div>
+      </div>
+      <div style="margin-top:1rem">
+        <div style="font-size:.75rem;font-weight:700;margin-bottom:.5rem">Column flexibility:</div>
+        <div style="font-size:.72rem;color:var(--muted);line-height:1.8">
+          • <code style="color:var(--accent)">drug_name</code> or <code style="color:var(--accent)">name</code> — drug name<br>
+          • <code style="color:var(--accent)">exp_date</code> or <code style="color:var(--accent)">expiry_date</code> — expiry (YYYY-MM-DD)<br>
+          • <code style="color:var(--accent)">mfg_date</code> or <code style="color:var(--accent)">manufacture_date</code><br>
+          • <code style="color:var(--accent)">supplier_name</code> or <code style="color:var(--accent)">supplier</code><br>
+          • All other columns: optional with defaults
+        </div>
+      </div>
+      <a href="{{ url_for('static', filename='sample_import.csv') if False else '#' }}"
+         onclick="downloadSample(); return false;"
+         class="btn btn-ghost" style="width:100%;margin-top:1rem;justify-content:center">
+        ↓ Download Sample CSV
+      </a>
+    </div>
+  </div>
+</div>
+
+<div class="card" style="margin-top:1.5rem">
+  <div class="card-header"><h3>Current Database Status</h3></div>
+  <div class="card-body">
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:1rem">
+      <div class="stat"><div class="stat-label">Drugs</div><div class="stat-val" style="color:var(--accent)">{{ stats.drugs if stats else 0 }}</div></div>
+      <div class="stat"><div class="stat-label">Batches</div><div class="stat-val">{{ stats.total if stats else 0 }}</div></div>
+      <div class="stat"><div class="stat-label">Total Stock</div><div class="stat-val">{{ stats.total_qty if stats else 0 }}</div></div>
+      <div class="stat stat-danger"><div class="stat-label">Expired</div><div class="stat-val" style="color:var(--red)">{{ stats.expired if stats else 0 }}</div></div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+function downloadSample() {
+  const csv = `drug_name,category,manufacturer,price,batch_id,mfg_date,exp_date,quantity,location,supplier_name
+Paracetamol,Analgesic,Cipla,12.00,B-PC-001,2024-01-01,2026-06-01,500,Rack A1,MedSupply Co.
+Amoxicillin,Antibiotic,Sun Pharma,45.00,B-AM-001,2023-06-01,2025-06-01,300,Rack B2,PharmaDist
+Metformin,Antidiabetic,Dr. Reddys,38.00,B-MF-001,2022-05-10,2025-02-05,80,Rack C1,HealthBridge
+Atorvastatin,Statin,Pfizer,95.00,B-AT-001,2024-03-01,2026-03-01,450,Rack D1,PharmaDist
+Omeprazole,Antacid,Zydus,28.00,B-OM-001,2023-08-20,2025-04-10,220,Rack E1,MedSupply Co.
+Cetirizine,Antihistamine,Abbott,22.00,B-CT-001,2024-02-14,2027-02-14,600,Rack F3,HealthBridge
+`;
+  const a = document.createElement('a');
+  a.href = 'data:text/csv;charset=utf-8,' + encodeURIComponent(csv);
+  a.download = 'sample_import.csv';
+  a.click();
+}
+</script>
+{% endblock %}

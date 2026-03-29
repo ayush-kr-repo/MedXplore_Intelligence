@@ -1,0 +1,134 @@
+{% extends "base.html" %}
+{% block title %}Downstream Notifications — PharmaCost{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <div>
+    <h4 class="mb-0 fw-bold">Downstream Workflow Triggers</h4>
+    <small class="text-muted">Email · Slack · ERP · Regulatory — all agent-fired notifications</small>
+  </div>
+  <span class="badge bg-primary fs-6">{{ notifs|length }} notifications</span>
+</div>
+
+{% if not notifs %}
+<div class="card border-0 shadow-sm text-center py-5">
+  <div class="card-body">
+    <i class="bi bi-bell-slash fs-1 text-muted"></i>
+    <p class="mt-3 text-muted">No notifications yet. Run a FinAgent scan and execute an action to trigger downstream workflows.</p>
+    <a href="/agent" class="btn btn-primary mt-2">Go to FinAgent AI</a>
+  </div>
+</div>
+{% else %}
+
+<!-- Summary cards -->
+<div class="row g-3 mb-4">
+  {% set channels = notifs|groupby('channel') %}
+  {% for channel, items in channels %}
+  <div class="col-md-3 col-6">
+    <div class="card border-0 shadow-sm">
+      <div class="card-body text-center py-3">
+        {% if channel == 'email' %}<i class="bi bi-envelope-fill text-info fs-4"></i>
+        {% elif channel == 'slack' %}<i class="bi bi-slack text-warning fs-4"></i>
+        {% elif channel == 'erp_webhook' %}<i class="bi bi-gear-fill text-success fs-4"></i>
+        {% else %}<i class="bi bi-shield-exclamation text-danger fs-4"></i>{% endif %}
+        <div class="fw-bold mt-1">{{ items|list|length }}</div>
+        <small class="text-muted text-capitalize">{{ channel.replace('_',' ') }}</small>
+      </div>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+
+<!-- Filter bar -->
+<div class="card border-0 shadow-sm mb-3">
+  <div class="card-body py-2 px-3">
+    <div class="d-flex gap-2 flex-wrap">
+      <button class="btn btn-sm btn-outline-secondary active" onclick="filterChannel('all',this)">All</button>
+      <button class="btn btn-sm btn-outline-info" onclick="filterChannel('email',this)">Email</button>
+      <button class="btn btn-sm btn-outline-warning" onclick="filterChannel('slack',this)">Slack</button>
+      <button class="btn btn-sm btn-outline-success" onclick="filterChannel('erp_webhook',this)">ERP</button>
+      <button class="btn btn-sm btn-outline-danger" onclick="filterChannel('regulatory',this)">Regulatory</button>
+    </div>
+  </div>
+</div>
+
+<!-- Notifications table -->
+<div class="card border-0 shadow-sm">
+  <div class="card-body p-0">
+    <div class="table-responsive">
+      <table class="table table-hover mb-0" id="notifTable">
+        <thead class="table-dark">
+          <tr>
+            <th>Channel</th>
+            <th>Recipient</th>
+            <th>Subject</th>
+            <th>Impact (₹)</th>
+            <th>Triggered By</th>
+            <th>Sent At</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for n in notifs %}
+          <tr class="notif-row" data-channel="{{ n.channel }}">
+            <td>
+              {% if n.channel == 'email' %}
+                <span class="badge bg-info text-dark"><i class="bi bi-envelope me-1"></i>Email</span>
+              {% elif n.channel == 'slack' %}
+                <span class="badge bg-warning text-dark"><i class="bi bi-chat me-1"></i>Slack</span>
+              {% elif n.channel == 'erp_webhook' %}
+                <span class="badge bg-success"><i class="bi bi-gear me-1"></i>ERP</span>
+              {% else %}
+                <span class="badge bg-danger"><i class="bi bi-shield me-1"></i>Regulatory</span>
+              {% endif %}
+            </td>
+            <td><small class="text-muted">{{ n.recipient }}</small></td>
+            <td><small>{{ n.subject[:60] }}{% if n.subject|length > 60 %}...{% endif %}</small></td>
+            <td class="text-end"><small class="text-success fw-bold">₹{{ "{:,.0f}".format(n.impact_inr) }}</small></td>
+            <td><small>{{ n.triggered_by }}</small></td>
+            <td><small class="text-muted">{{ n.sent_at[:16] }}</small></td>
+            <td>
+              <button class="btn btn-sm btn-outline-secondary py-0 px-2"
+                      data-bs-toggle="modal" data-bs-target="#notifModal"
+                      data-body="{{ n.body | e }}" data-subject="{{ n.subject | e }}">
+                View
+              </button>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endif %}
+
+<!-- Modal for full notification body -->
+<div class="modal fade" id="notifModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content bg-dark text-white">
+      <div class="modal-header border-secondary">
+        <h6 class="modal-title" id="modalSubject"></h6>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <pre id="modalBody" style="white-space:pre-wrap;font-size:13px;color:#e6edf3;"></pre>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+function filterChannel(ch, btn) {
+  document.querySelectorAll('.notif-row').forEach(r => {
+    r.style.display = (ch === 'all' || r.dataset.channel === ch) ? '' : 'none';
+  });
+  document.querySelectorAll('[onclick^="filterChannel"]').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+}
+document.getElementById('notifModal').addEventListener('show.bs.modal', function(e) {
+  const btn = e.relatedTarget;
+  document.getElementById('modalSubject').textContent = btn.dataset.subject;
+  document.getElementById('modalBody').textContent = btn.dataset.body;
+});
+</script>
+{% endblock %}

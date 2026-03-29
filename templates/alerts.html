@@ -1,0 +1,102 @@
+{% extends "base.html" %}
+{% block title %}Alerts{% endblock %}
+{% block topbar_title %}Expiry Alerts{% endblock %}
+{% block content %}
+<div class="page-header">
+  <h1>Alerts Center</h1>
+  <p>All expiry and stock alerts requiring attention.</p>
+</div>
+
+<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:1rem;margin-bottom:1.75rem">
+  <div class="stat stat-danger"><div class="stat-label">Expired</div><div class="stat-val" style="color:var(--red)">{{ expired|length }}</div><div class="stat-sub">Write-off risk</div></div>
+  <div class="stat stat-warn"><div class="stat-label">Critical &lt;30d</div><div class="stat-val" style="color:var(--orange)">{{ critical|length }}</div><div class="stat-sub">Urgent action</div></div>
+  <div class="stat"><div class="stat-label">Warning &lt;90d</div><div class="stat-val" style="color:var(--yellow)">{{ warning|length }}</div><div class="stat-sub">Monitor closely</div></div>
+  <div class="stat"><div class="stat-label">Low Stock</div><div class="stat-val" style="color:var(--accent)">{{ low_stock|length }}</div><div class="stat-sub">&lt;100 units</div></div>
+</div>
+
+{% if expired %}
+<div class="card" style="margin-bottom:1.25rem;border-color:rgba(255,59,59,.3)">
+  <div class="card-header"><h3 style="color:var(--red)">🔴 Expired Batches — Confirmed Loss</h3></div>
+  <table>
+    <thead><tr><th>Batch</th><th>Drug</th><th>Exp Date</th><th>Days Overdue</th><th>Qty</th><th>Loss Est.</th><th>Supplier</th></tr></thead>
+    <tbody>
+    {% for r in expired %}
+    <tr>
+      <td style="font-family:var(--font-mono);font-size:.72rem">{{ r.batch_id }}</td>
+      <td style="font-weight:600">{{ r.drug_name }}</td>
+      <td>{{ r.exp_date }}</td>
+      <td style="color:var(--red);font-weight:700;font-family:var(--font-mono)">{{ r.days_overdue }}d</td>
+      <td>{{ r.quantity }}</td>
+      <td style="font-weight:700;color:var(--red)">₹{{ "%.0f"|format(r.quantity * r.price) }}</td>
+      <td>{{ r.supplier or '—' }}</td>
+    </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endif %}
+
+{% if critical %}
+<div class="card" style="margin-bottom:1.25rem;border-color:rgba(255,136,0,.3)">
+  <div class="card-header"><h3 style="color:var(--orange)">🟠 Critical — Expiring in &lt;30 Days</h3></div>
+  <table>
+    <thead><tr><th>Batch</th><th>Drug</th><th>Exp Date</th><th>Days Left</th><th>Qty</th><th>Value at Risk</th></tr></thead>
+    <tbody>
+    {% for r in critical %}
+    <tr>
+      <td style="font-family:var(--font-mono);font-size:.72rem">{{ r.batch_id }}</td>
+      <td style="font-weight:600">{{ r.drug_name }}</td>
+      <td>{{ r.exp_date }}</td>
+      <td style="color:var(--orange);font-weight:700;font-family:var(--font-mono)">{{ r.days_left }}d</td>
+      <td>{{ r.quantity }}</td>
+      <td style="font-weight:700;color:var(--orange)">₹{{ "%.0f"|format(r.quantity * r.price) }}</td>
+    </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endif %}
+
+{% if warning %}
+<div class="card" style="margin-bottom:1.25rem;border-color:rgba(240,192,64,.2)">
+  <div class="card-header"><h3 style="color:var(--yellow)">🟡 Warning — Expiring in &lt;90 Days</h3></div>
+  <table>
+    <thead><tr><th>Batch</th><th>Drug</th><th>Exp Date</th><th>Days Left</th><th>Qty</th></tr></thead>
+    <tbody>
+    {% for r in warning %}
+    <tr>
+      <td style="font-family:var(--font-mono);font-size:.72rem">{{ r.batch_id }}</td>
+      <td style="font-weight:600">{{ r.drug_name }}</td>
+      <td>{{ r.exp_date }}</td>
+      <td style="color:var(--yellow);font-family:var(--font-mono)">{{ r.days_left }}d</td>
+      <td>{{ r.quantity }}</td>
+    </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endif %}
+
+{% if low_stock %}
+<div class="card">
+  <div class="card-header"><h3 style="color:var(--accent)">📉 Low Stock — Below 100 Units</h3></div>
+  <table>
+    <thead><tr><th>Batch</th><th>Drug</th><th>Qty</th><th>Status</th></tr></thead>
+    <tbody>
+    {% for r in low_stock %}
+    <tr>
+      <td style="font-family:var(--font-mono);font-size:.72rem">{{ r.batch_id }}</td>
+      <td style="font-weight:600">{{ r.drug_name }}</td>
+      <td style="font-weight:700;color:var(--accent)">{{ r.quantity }}</td>
+      <td><span class="badge badge-{{ r.status }}">{{ r.status }}</span></td>
+    </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endif %}
+
+{% if not expired and not critical and not warning and not low_stock %}
+<div class="empty-msg">✅ No active alerts — inventory is healthy!</div>
+{% endif %}
+{% endblock %}

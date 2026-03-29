@@ -1,0 +1,154 @@
+{% extends "base.html" %}
+{% block title %}Dashboard{% endblock %}
+{% block topbar_title %}Dashboard{% endblock %}
+{% block content %}
+<div class="page-header">
+  <h1>Good {{ 'morning' if now.hour < 12 else 'afternoon' if now.hour < 17 else 'evening' }}, {{ session.user.username }} 👋</h1>
+  <p>Here's the financial health of your pharmacy inventory.</p>
+</div>
+
+{% set inr = stats.expired_loss + stats.expiring_risk %}
+{% if inr > 0 %}
+<div style="background:rgba(255,59,59,.07);border:1px solid rgba(255,59,59,.25);border-radius:8px;padding:1rem 1.25rem;margin-bottom:1.5rem;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.75rem">
+  <div>
+    <div style="font-family:var(--font-mono);font-size:.6rem;letter-spacing:.1em;color:var(--red);text-transform:uppercase;margin-bottom:.25rem">⚠ Financial Risk Detected</div>
+    <div style="font-size:.9rem;font-weight:700">₹{{ "%.0f"|format(stats.expired_loss) }} confirmed loss · ₹{{ "%.0f"|format(stats.expiring_risk) }} at risk of expiry</div>
+  </div>
+  <a href="{{ url_for('agent') }}" class="btn btn-primary">Run FinAgent Scan →</a>
+</div>
+{% endif %}
+
+<div class="stat-grid">
+  <div class="stat stat-danger">
+    <div class="stat-label">Expired Batches</div>
+    <div class="stat-val" style="color:var(--red)">{{ stats.expired }}</div>
+    <div class="stat-sub">₹{{ "%.0f"|format(stats.expired_loss) }} confirmed loss</div>
+  </div>
+  <div class="stat stat-warn">
+    <div class="stat-label">Critical (&lt;30d)</div>
+    <div class="stat-val" style="color:var(--orange)">{{ stats.critical }}</div>
+    <div class="stat-sub">Expiring within 30 days</div>
+  </div>
+  <div class="stat">
+    <div class="stat-label">Warning (&lt;90d)</div>
+    <div class="stat-val" style="color:var(--yellow)">{{ stats.warning }}</div>
+    <div class="stat-sub">At risk of expiry</div>
+  </div>
+  <div class="stat stat-green">
+    <div class="stat-label">Good Batches</div>
+    <div class="stat-val" style="color:var(--green)">{{ stats.good }}</div>
+    <div class="stat-sub">Healthy stock</div>
+  </div>
+  <div class="stat stat-accent">
+    <div class="stat-label">Total Revenue</div>
+    <div class="stat-val" style="color:var(--accent);font-size:1.2rem">₹{{ "%.0f"|format(stats.revenue) }}</div>
+    <div class="stat-sub">All-time billing</div>
+  </div>
+  <div class="stat">
+    <div class="stat-label">Total Stock</div>
+    <div class="stat-val">{{ stats.total_qty }}</div>
+    <div class="stat-sub">Units across {{ stats.drugs }} drugs</div>
+  </div>
+</div>
+
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:1.25rem;margin-bottom:1.25rem">
+  <!-- Alerts -->
+  <div class="card">
+    <div class="card-header">
+      <h3>🔴 Active Alerts</h3>
+      <a href="{{ url_for('alerts') }}" class="btn btn-ghost btn-sm">View all</a>
+    </div>
+    <div class="card-body" style="padding:0">
+      {% if alerts %}
+      <table>
+        <thead><tr><th>Drug</th><th>Status</th><th>Days</th></tr></thead>
+        <tbody>
+        {% for r in alerts %}
+        <tr>
+          <td>{{ r.drug_name }}<br><small style="color:var(--muted);font-family:var(--font-mono);font-size:.6rem">{{ r.batch_id }}</small></td>
+          <td><span class="badge badge-{{ r.status }}">{{ r.status }}</span></td>
+          <td style="font-family:var(--font-mono);font-size:.72rem;color:{% if r.days_left < 0 %}var(--red){% elif r.days_left < 30 %}var(--orange){% else %}var(--yellow){% endif %}">
+            {{ r.days_left }}d
+          </td>
+        </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+      {% else %}<div class="empty-msg">No active alerts</div>{% endif %}
+    </div>
+  </div>
+
+  <!-- Recent Bills -->
+  <div class="card">
+    <div class="card-header">
+      <h3>🧾 Recent Bills</h3>
+      <a href="{{ url_for('bills') }}" class="btn btn-ghost btn-sm">View all</a>
+    </div>
+    <div class="card-body" style="padding:0">
+      {% if recent_bills %}
+      <table>
+        <thead><tr><th>Bill No</th><th>Patient</th><th>Total</th></tr></thead>
+        <tbody>
+        {% for b in recent_bills %}
+        <tr>
+          <td><a href="{{ url_for('bill_detail', bill_id=b.bill_id) }}" style="color:var(--accent);text-decoration:none;font-family:var(--font-mono);font-size:.7rem">{{ b.bill_number }}</a></td>
+          <td>{{ b.patient_name }}</td>
+          <td style="font-weight:700">₹{{ "%.2f"|format(b.total) }}</td>
+        </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+      {% else %}<div class="empty-msg">No bills yet</div>{% endif %}
+    </div>
+  </div>
+</div>
+
+<!-- Audit + Agent pending -->
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:1.25rem">
+  <div class="card">
+    <div class="card-header">
+      <h3>📋 Recent Activity</h3>
+      <a href="{{ url_for('audit') }}" class="btn btn-ghost btn-sm">Full log</a>
+    </div>
+    <div class="card-body" style="padding:0">
+      <table>
+        <thead><tr><th>Action</th><th>Table</th><th>Time</th></tr></thead>
+        <tbody>
+        {% for log in recent_audit %}
+        <tr>
+          <td><span class="badge {% if log.action=='INSERT' %}badge-good{% elif log.action=='DELETE' %}badge-expired{% elif 'AGENT' in log.action %}badge-info{% else %}badge-warning{% endif %}">{{ log.action }}</span></td>
+          <td style="font-family:var(--font-mono);font-size:.7rem">{{ log.table_name }}</td>
+          <td style="font-family:var(--font-mono);font-size:.65rem;color:var(--muted)">{{ log.timestamp[11:16] }}</td>
+        </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  <div class="card" style="border-color:rgba(0,229,255,.2);background:rgba(0,229,255,.03)">
+    <div class="card-header">
+      <h3 style="color:var(--accent)">⚡ FinAgent</h3>
+      <a href="{{ url_for('agent') }}" class="btn btn-primary btn-sm">Open Agent</a>
+    </div>
+    <div class="card-body">
+      <div style="margin-bottom:1rem">
+        <div style="font-family:var(--font-mono);font-size:.6rem;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;margin-bottom:.35rem">Pending Agent Actions</div>
+        <div style="font-size:2rem;font-weight:800;color:{% if stats.pending_actions > 0 %}var(--orange){% else %}var(--green){% endif %}">{{ stats.pending_actions }}</div>
+      </div>
+      <p style="font-size:.78rem;color:var(--muted);line-height:1.6">FinAgent continuously monitors inventory signals, detects financial anomalies, and stages corrective actions within your approval workflow.</p>
+      <div style="margin-top:1rem;display:flex;gap:.5rem;flex-wrap:wrap">
+        <span class="badge badge-info">Detect</span>
+        <span class="badge badge-info">Diagnose</span>
+        <span class="badge badge-info">Recommend</span>
+        <span class="badge badge-info">Execute</span>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// inject current hour for greeting
+</script>
+{% endblock %}

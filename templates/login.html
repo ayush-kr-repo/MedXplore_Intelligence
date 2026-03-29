@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DrugWatch — Login</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;700;800&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#080c10;--surface:#0d1117;--surface2:#161b22;--border:#21262d;--text:#e6edf3;--muted:#8b949e;--accent:#00e5ff;--green:#00e576;--red:#ff3b3b}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:'Syne',sans-serif;min-height:100vh;display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden}
+body::before{content:'';position:fixed;inset:0;background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,229,255,.012) 2px,rgba(0,229,255,.012) 4px);pointer-events:none}
+.bg-glow{position:fixed;width:600px;height:600px;background:radial-gradient(circle,rgba(0,229,255,.06),transparent 70%);top:50%;left:50%;transform:translate(-50%,-50%);pointer-events:none}
+.login-wrap{position:relative;z-index:1;width:100%;max-width:380px;padding:1.5rem}
+.login-brand{text-align:center;margin-bottom:2rem}
+.login-brand .logo{display:inline-flex;align-items:center;justify-content:center;width:52px;height:52px;background:rgba(0,229,255,.1);border:1px solid rgba(0,229,255,.25);border-radius:12px;margin-bottom:.85rem}
+.login-brand h1{font-size:1.6rem;font-weight:800;letter-spacing:-.02em}
+.login-brand p{font-family:'Space Mono',monospace;font-size:.62rem;color:var(--muted);letter-spacing:.1em;text-transform:uppercase;margin-top:.3rem}
+.login-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:1.75rem}
+.login-card h2{font-size:.95rem;font-weight:700;margin-bottom:1.25rem;color:var(--muted)}
+.form-group{margin-bottom:1rem}
+label{font-size:.72rem;font-weight:600;color:var(--muted);display:block;margin-bottom:.35rem;letter-spacing:.04em}
+input{background:var(--surface2);border:1px solid var(--border);color:var(--text);border-radius:6px;padding:.6rem .85rem;font-family:'Syne',sans-serif;font-size:.85rem;width:100%;outline:none;transition:border-color .15s}
+input:focus{border-color:var(--accent)}
+.btn{width:100%;padding:.7rem;background:var(--accent);color:#000;font-family:'Syne',sans-serif;font-size:.85rem;font-weight:800;border:none;border-radius:6px;cursor:pointer;letter-spacing:.05em;transition:all .15s;margin-top:.25rem}
+.btn:hover{background:#fff;transform:translateY(-1px)}
+.error{background:rgba(255,59,59,.1);border:1px solid rgba(255,59,59,.3);color:var(--red);padding:.6rem .85rem;border-radius:6px;font-size:.78rem;margin-bottom:1rem}
+.creds{margin-top:1.25rem;border-top:1px solid var(--border);padding-top:1rem}
+.cred-row{display:flex;justify-content:space-between;align-items:center;font-family:'Space Mono',monospace;font-size:.62rem;color:var(--muted);margin-bottom:.35rem;padding:.3rem .5rem;background:var(--surface2);border-radius:4px}
+.cred-row span{color:var(--accent)}
+</style>
+</head>
+<body>
+<div class="bg-glow"></div>
+<div class="login-wrap">
+  <div class="login-brand">
+    <div class="logo">
+      <svg width="28" height="28" viewBox="0 0 28 28" fill="none">
+        <path d="M14 4v20M4 14h20" stroke="#00e5ff" stroke-width="2" stroke-linecap="round"/>
+        <circle cx="14" cy="14" r="4" stroke="#00e576" stroke-width="1.5"/>
+      </svg>
+    </div>
+    <h1>DrugWatch</h1>
+    <p>AI Financial Operations</p>
+  </div>
+  <div class="login-card">
+    <h2>Sign in to continue</h2>
+    {% if error %}<div class="error">{{ error }}</div>{% endif %}
+    <form method="POST">
+      <div class="form-group">
+        <label>Username</label>
+        <input type="text" name="username" placeholder="admin" required autofocus>
+      </div>
+      <div class="form-group">
+        <label>Password</label>
+        <input type="password" name="password" placeholder="••••••••" required>
+      </div>
+      <button type="submit" class="btn">Enter →</button>
+    </form>
+    <div class="creds">
+      <div class="cred-row">admin / <span>admin123</span> — Full access</div>
+      <div class="cred-row">pharma1 / <span>pharma123</span> — Pharmacist</div>
+    </div>
+  </div>
+</div>
+</body>
+</html>

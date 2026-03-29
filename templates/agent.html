@@ -1,0 +1,543 @@
+{% extends "base.html" %}
+{% block title %}FinAgent AI{% endblock %}
+{% block topbar_title %}FinAgent — AI Financial Operations{% endblock %}
+{% block extra_head %}
+<style>
+.agent-hero{margin-bottom:2rem}
+.agent-hero-label{font-family:var(--font-mono);font-size:.62rem;letter-spacing:.14em;color:var(--accent);text-transform:uppercase;margin-bottom:.4rem}
+.agent-hero h1{font-size:2rem;font-weight:800;letter-spacing:-.02em;line-height:1.05}
+.agent-hero h1 span{color:var(--accent)}
+.agent-hero p{color:var(--muted);font-size:.85rem;margin-top:.4rem;max-width:55ch;line-height:1.65}
+
+.scan-bar{display:flex;align-items:center;gap:1rem;margin-bottom:2rem;flex-wrap:wrap}
+.btn-scan{
+  display:inline-flex;align-items:center;gap:.5rem;
+  background:var(--accent);color:#000;
+  font-family:var(--font-head);font-size:.82rem;font-weight:800;letter-spacing:.06em;
+  padding:.65rem 1.5rem;border:none;border-radius:5px;cursor:pointer;
+  text-transform:uppercase;transition:all .2s;
+}
+.btn-scan:hover{background:#fff;transform:translateY(-1px);box-shadow:0 0 20px rgba(0,229,255,.35)}
+.btn-scan:disabled{background:var(--surface2);color:var(--muted);cursor:not-allowed;transform:none;box-shadow:none}
+.scan-status{font-family:var(--font-mono);font-size:.68rem;color:var(--muted)}
+.scan-status.running{color:var(--accent)}
+
+/* loop steps */
+.loop-steps{display:flex;gap:.5rem;flex-wrap:wrap;margin-bottom:1.75rem}
+.loop-step{
+  display:flex;align-items:center;gap:.4rem;
+  font-family:var(--font-mono);font-size:.62rem;letter-spacing:.06em;
+  padding:.3rem .7rem;border-radius:4px;
+  background:var(--surface2);border:1px solid var(--border);color:var(--muted);
+  transition:all .3s;
+}
+.loop-step.active{background:rgba(0,229,255,.1);border-color:rgba(0,229,255,.3);color:var(--accent)}
+.loop-step.done{background:rgba(0,229,118,.08);border-color:rgba(0,229,118,.25);color:var(--green)}
+.loop-dot{width:6px;height:6px;border-radius:50%;background:currentColor}
+
+/* risk meter */
+.risk-panel{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:1.25rem 1.5rem;margin-bottom:1.5rem;display:none}
+.risk-panel.show{display:block;animation:fadeIn .3s ease}
+@keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+.risk-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:.85rem;flex-wrap:wrap;gap:.75rem}
+.risk-score-block .lbl{font-family:var(--font-mono);font-size:.58rem;letter-spacing:.12em;color:var(--muted);text-transform:uppercase;margin-bottom:.2rem}
+.risk-num{font-size:3rem;font-weight:800;line-height:1}
+.risk-num.low{color:var(--green)} .risk-num.medium{color:var(--yellow)} .risk-num.high{color:var(--orange)} .risk-num.critical{color:var(--red)}
+.verdict{border-left:3px solid var(--accent);padding-left:.75rem;font-size:.88rem;max-width:55ch;line-height:1.55}
+.risk-track{height:8px;background:var(--surface2);border-radius:4px;overflow:hidden}
+.risk-fill{height:100%;border-radius:4px;transition:width 1.2s cubic-bezier(.4,0,.2,1)}
+.risk-fill.low{background:var(--green)} .risk-fill.medium{background:linear-gradient(90deg,var(--green),var(--yellow))} .risk-fill.high{background:linear-gradient(90deg,var(--yellow),var(--orange))} .risk-fill.critical{background:linear-gradient(90deg,var(--orange),var(--red));box-shadow:0 0 12px rgba(255,59,59,.4)}
+
+/* kpi row */
+.kpi-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:.85rem;margin-bottom:1.75rem;display:none}
+.kpi-row.show{display:grid}
+.kpi{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:1rem 1.1rem}
+.kpi .lbl{font-family:var(--font-mono);font-size:.58rem;letter-spacing:.1em;color:var(--muted);text-transform:uppercase;margin-bottom:.3rem}
+.kpi .val{font-size:1.4rem;font-weight:800}
+.kpi .sub{font-size:.68rem;color:var(--muted);margin-top:.2rem}
+
+/* exec summary */
+.exec-box{background:linear-gradient(135deg,rgba(0,229,255,.05),transparent);border:1px solid rgba(0,229,255,.2);border-radius:8px;padding:1.1rem 1.4rem;margin-bottom:1.75rem;display:none}
+.exec-box.show{display:block}
+.exec-box .lbl{font-family:var(--font-mono);font-size:.6rem;letter-spacing:.12em;color:var(--accent);text-transform:uppercase;margin-bottom:.4rem}
+.exec-box p{font-size:.88rem;line-height:1.65}
+
+/* anomaly cards */
+.anomaly-section{margin-bottom:2rem;display:none}
+.anomaly-section.show{display:block}
+.sec-head{display:flex;align-items:center;gap:.65rem;margin-bottom:.85rem}
+.sec-head h2{font-size:.95rem;font-weight:700;letter-spacing:.03em}
+.cnt-badge{font-family:var(--font-mono);font-size:.6rem;background:var(--surface2);color:var(--muted);padding:2px 7px;border-radius:3px}
+
+.anomaly{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:1.25rem 1.4rem;margin-bottom:.85rem;position:relative;overflow:hidden;animation:fadeIn .3s ease both}
+.anomaly::before{content:'';position:absolute;left:0;top:0;bottom:0;width:4px;border-radius:4px 0 0 4px}
+.anomaly.critical::before{background:var(--red);box-shadow:0 0 8px rgba(255,59,59,.5)}
+.anomaly.high::before{background:var(--orange)}
+.anomaly.medium::before{background:var(--yellow)}
+.anomaly.low::before{background:var(--green)}
+.ano-top{display:flex;align-items:flex-start;justify-content:space-between;gap:1rem;flex-wrap:wrap}
+.ano-id-row{display:flex;align-items:center;gap:.5rem;flex-wrap:wrap;margin-bottom:.3rem}
+.ano-id{font-family:var(--font-mono);font-size:.6rem;color:var(--muted2)}
+.sev-badge{font-family:var(--font-mono);font-size:.58rem;font-weight:700;letter-spacing:.07em;padding:2px 7px;border-radius:3px;text-transform:uppercase}
+.sev-badge.critical{background:rgba(255,59,59,.15);color:var(--red);border:1px solid rgba(255,59,59,.3)}
+.sev-badge.high{background:rgba(255,136,0,.15);color:var(--orange);border:1px solid rgba(255,136,0,.3)}
+.sev-badge.medium{background:rgba(240,192,64,.15);color:var(--yellow);border:1px solid rgba(240,192,64,.3)}
+.sev-badge.low{background:rgba(0,229,118,.1);color:var(--green);border:1px solid rgba(0,229,118,.2)}
+.type-badge{font-family:var(--font-mono);font-size:.57rem;background:rgba(0,229,255,.08);color:var(--accent);border:1px solid rgba(0,229,255,.2);padding:2px 6px;border-radius:3px;text-transform:uppercase;letter-spacing:.06em}
+.ano-title{font-size:.95rem;font-weight:700}
+.ano-desc{font-size:.8rem;color:var(--muted);line-height:1.5;margin-top:.2rem}
+.impact-chip{text-align:right;flex-shrink:0}
+.impact-chip .impact-lbl{font-family:var(--font-mono);font-size:.55rem;color:var(--muted);text-transform:uppercase;letter-spacing:.08em}
+.impact-chip .impact-val{font-size:1.5rem;font-weight:800;color:var(--red);line-height:1.1}
+.math-line{font-family:var(--font-mono);font-size:.65rem;color:var(--muted);margin-top:.2rem;background:var(--surface2);padding:.25rem .5rem;border-radius:4px;display:inline-block}
+
+.ano-body{margin-top:1rem;display:grid;grid-template-columns:1fr 1fr;gap:.65rem}
+@media(max-width:640px){.ano-body{grid-template-columns:1fr}}
+.info-block{background:var(--surface2);border-radius:6px;padding:.75rem .9rem}
+.info-block .ib-lbl{font-family:var(--font-mono);font-size:.56rem;letter-spacing:.1em;color:var(--muted);text-transform:uppercase;margin-bottom:.3rem}
+.info-block p{font-size:.78rem;line-height:1.5}
+.info-block .accent{color:var(--accent)} .info-block .danger{color:var(--red)} .info-block .safe{color:var(--green)}
+.ba-row{display:grid;grid-template-columns:1fr 1fr;gap:.5rem;grid-column:1/-1}
+@media(max-width:640px){.ba-row{grid-template-columns:1fr}}
+.ba-box{border-radius:5px;padding:.65rem .8rem;font-size:.76rem;line-height:1.45}
+.ba-box.before{background:rgba(255,59,59,.06);border:1px solid rgba(255,59,59,.18)}
+.ba-box.after{background:rgba(0,229,118,.06);border:1px solid rgba(0,229,118,.18)}
+.ba-head{font-family:var(--font-mono);font-size:.56rem;letter-spacing:.1em;text-transform:uppercase;margin-bottom:.3rem}
+.ba-box.before .ba-head{color:var(--red)} .ba-box.after .ba-head{color:var(--green)}
+.tags-row{display:flex;flex-wrap:wrap;gap:.3rem;margin-top:.3rem}
+.tag-chip{font-family:var(--font-mono);font-size:.58rem;background:rgba(255,255,255,.05);color:var(--muted);padding:2px 6px;border-radius:3px}
+.urgency{font-family:var(--font-mono);font-size:.65rem;color:var(--orange);margin-top:.3rem}
+
+.ano-footer{display:flex;align-items:center;justify-content:space-between;margin-top:.9rem;padding-top:.75rem;border-top:1px solid var(--border);flex-wrap:wrap;gap:.5rem}
+.action-lbl{font-family:var(--font-mono);font-size:.6rem}
+.action-lbl.auto{color:var(--accent)} .action-lbl.stage{color:var(--yellow)} .action-lbl.alert{color:var(--orange)}
+.ano-btns{display:flex;gap:.5rem}
+
+/* Financial model */
+.fin-model{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:1.25rem 1.4rem;margin-bottom:1.75rem;display:none}
+.fin-model.show{display:block}
+.fm-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(155px,1fr));gap:.65rem;margin-top:.85rem}
+.fm-card{background:var(--surface2);border-radius:6px;padding:.8rem 1rem}
+.fm-card .lbl{font-family:var(--font-mono);font-size:.56rem;letter-spacing:.1em;color:var(--muted);text-transform:uppercase;margin-bottom:.3rem}
+.fm-card .val{font-size:1.2rem;font-weight:800}
+
+/* variance */
+.variance-box{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:1.25rem 1.4rem;margin-bottom:1.75rem;display:none}
+.variance-box.show{display:block}
+.var-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:.65rem;margin-top:.85rem}
+@media(max-width:760px){.var-grid{grid-template-columns:1fr}}
+.var-card{background:var(--surface2);border-radius:6px;padding:.85rem 1rem}
+.var-card .lbl{font-family:var(--font-mono);font-size:.58rem;letter-spacing:.1em;color:var(--muted);text-transform:uppercase;margin-bottom:.4rem}
+.var-card p{font-size:.78rem;line-height:1.5;color:var(--text)}
+
+/* resource opt */
+.res-opt{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:1.25rem 1.4rem;margin-bottom:1.75rem;display:none}
+.res-opt.show{display:block}
+.res-item{background:var(--surface2);border-radius:6px;padding:.85rem 1rem;margin-bottom:.5rem;display:flex;justify-content:space-between;align-items:center;gap:1rem;flex-wrap:wrap}
+.res-item:last-child{margin-bottom:0}
+.res-item .area{font-weight:700;font-size:.82rem;margin-bottom:.2rem}
+.res-item .rec{font-size:.76rem;color:var(--muted);line-height:1.4}
+.res-savings{font-size:1rem;font-weight:800;color:var(--green);white-space:nowrap;flex-shrink:0}
+
+/* pending table */
+.pending-section{margin-top:2rem}
+.pending-section h2{font-size:.95rem;font-weight:700;margin-bottom:.85rem}
+
+/* loader */
+.loader{display:none;text-align:center;padding:3.5rem 0}
+.loader.show{display:block}
+.spinner{width:42px;height:42px;border:2px solid var(--border2);border-top-color:var(--accent);border-radius:50%;animation:spin .75s linear infinite;margin:0 auto .85rem}
+@keyframes spin{to{transform:rotate(360deg)}}
+.loader-msg{font-family:var(--font-mono);font-size:.68rem;color:var(--accent);letter-spacing:.07em}
+.loader-sub{font-family:var(--font-mono);font-size:.6rem;color:var(--muted);margin-top:.25rem}
+</style>
+{% endblock %}
+{% block content %}
+
+<div class="agent-hero">
+  <div class="agent-hero-label">▸ Track 3 · AI Financial Operations & Cost Intelligence</div>
+  <h1>Detect. Quantify.<br><span>Recover.</span></h1>
+  <p>FinAgent reads your entire inventory and billing database, detects financial anomalies before losses land, shows the exact rupee math, and closes the loop — from signal to approved action.</p>
+</div>
+
+<!-- Full loop indicator -->
+<div class="loop-steps" id="loopSteps">
+  <div class="loop-step" id="step-detect"><div class="loop-dot"></div>DETECT</div>
+  <div style="color:var(--border2);align-self:center">→</div>
+  <div class="loop-step" id="step-diagnose"><div class="loop-dot"></div>DIAGNOSE</div>
+  <div style="color:var(--border2);align-self:center">→</div>
+  <div class="loop-step" id="step-recommend"><div class="loop-dot"></div>RECOMMEND</div>
+  <div style="color:var(--border2);align-self:center">→</div>
+  <div class="loop-step" id="step-execute"><div class="loop-dot"></div>EXECUTE / STAGE</div>
+</div>
+
+<div class="scan-bar">
+  <button class="btn-scan" id="scanBtn" onclick="runScan()">
+    <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 8v4l2.5 2.5"/></svg>
+    Run Financial Scan
+  </button>
+  <span class="scan-status" id="scanStatus">Ready — click to scan all financial signals</span>
+</div>
+
+<!-- Loader -->
+<div class="loader" id="loader">
+  <div class="spinner"></div>
+  <div class="loader-msg" id="loaderMsg">Initialising FinAgent...</div>
+  <div class="loader-sub" id="loaderSub">Connecting to database</div>
+</div>
+
+<!-- Risk Panel -->
+<div class="risk-panel" id="riskPanel">
+  <div class="risk-top">
+    <div class="risk-score-block">
+      <div class="lbl">Financial Risk Score</div>
+      <div class="risk-num" id="riskNum">—</div>
+      <div style="font-family:var(--font-mono);font-size:.6rem;color:var(--muted);margin-top:.2rem">out of 100</div>
+    </div>
+    <div class="verdict" id="agentVerdict">—</div>
+  </div>
+  <div class="risk-track"><div class="risk-fill" id="riskFill" style="width:0%"></div></div>
+</div>
+
+<!-- KPI Row -->
+<div class="kpi-row" id="kpiRow">
+  <div class="kpi"><div class="lbl">Confirmed Loss</div><div class="val" style="color:var(--red)" id="kpiLoss">—</div><div class="sub">Expired stock value</div></div>
+  <div class="kpi"><div class="lbl">At-Risk Value</div><div class="val" style="color:var(--orange)" id="kpiRisk">—</div><div class="sub">Expiring inventory</div></div>
+  <div class="kpi"><div class="lbl">Recovery Potential</div><div class="val" style="color:var(--green)" id="kpiRecovery">—</div><div class="sub">If all actions executed</div></div>
+  <div class="kpi"><div class="lbl">Projected 30d Loss</div><div class="val" style="color:var(--orange)" id="kpiProj">—</div><div class="sub">Without intervention</div></div>
+  <div class="kpi"><div class="lbl">Inventory Efficiency</div><div class="val" style="color:var(--accent)" id="kpiEff">—</div><div class="sub">Stock utilisation score</div></div>
+  <div class="kpi"><div class="lbl">Anomalies Found</div><div class="val" style="color:var(--yellow)" id="kpiCount">—</div><div class="sub">Require action</div></div>
+</div>
+
+<!-- Exec Summary -->
+<div class="exec-box" id="execBox">
+  <div class="lbl">▸ Executive Summary</div>
+  <p id="execText">—</p>
+</div>
+
+<!-- Anomalies -->
+<div class="anomaly-section" id="anomalySection">
+  <div class="sec-head">
+    <h2>Detected Anomalies</h2>
+    <span class="cnt-badge" id="anomalyCount">0</span>
+    <span style="font-family:var(--font-mono);font-size:.62rem;color:var(--muted)">sorted by severity</span>
+  </div>
+  <div id="anomalyList"></div>
+</div>
+
+<!-- Financial Model -->
+<div class="fin-model" id="finModel">
+  <div class="sec-head"><h2>Before / After Financial Model</h2></div>
+  <div class="fm-grid" id="fmGrid"></div>
+</div>
+
+<!-- Variance Analysis -->
+<div class="variance-box" id="varianceBox">
+  <div class="sec-head"><h2>Variance Analysis</h2></div>
+  <div class="var-grid" id="varGrid"></div>
+</div>
+
+<!-- Resource Optimisation -->
+<div class="res-opt" id="resOpt">
+  <div class="sec-head"><h2>Resource Optimisation Recommendations</h2></div>
+  <div id="resList"></div>
+</div>
+
+<!-- Pending Actions (from DB) -->
+{% if pending %}
+<div class="pending-section">
+  <div class="sec-head">
+    <h2>⏳ Pending Approval</h2>
+    <span class="cnt-badge">{{ pending|length }}</span>
+  </div>
+  <div class="card">
+    <table>
+      <thead><tr><th>Anomaly</th><th>Type</th><th>Severity</th><th>Impact</th><th>Staged By</th><th>Actions</th></tr></thead>
+      <tbody>
+      {% for a in pending %}
+      <tr id="pending-row-{{ a.action_id }}">
+        <td>
+          <div style="font-weight:700;font-size:.8rem">{{ a.anomaly_title }}</div>
+          <div style="font-family:var(--font-mono);font-size:.6rem;color:var(--muted)">{{ a.anomaly_id }}</div>
+        </td>
+        <td><span class="type-badge">{{ a.action_type.replace('_',' ') }}</span></td>
+        <td><span class="sev-badge {{ a.severity }}">{{ a.severity }}</span></td>
+        <td style="font-weight:700;color:var(--red)">₹{{ "%.0f"|format(a.impact_inr) }}</td>
+        <td style="font-family:var(--font-mono);font-size:.68rem;color:var(--muted)">{{ a.executed_by }}</td>
+        <td>
+          <div style="display:flex;gap:.4rem">
+            {% if session.user.role == 'admin' %}
+            <button class="btn btn-green btn-sm" onclick="approveAction({{ a.action_id }}, this)">Approve</button>
+            <button class="btn btn-danger btn-sm" onclick="rejectAction({{ a.action_id }}, this)">Reject</button>
+            {% else %}
+            <span style="font-family:var(--font-mono);font-size:.62rem;color:var(--muted)">Awaiting admin</span>
+            {% endif %}
+          </div>
+        </td>
+      </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endif %}
+
+{% if history %}
+<div class="pending-section">
+  <div class="sec-head">
+    <h2>✅ Action History</h2>
+    <span class="cnt-badge">{{ history|length }}</span>
+  </div>
+  <div class="card">
+    <table>
+      <thead><tr><th>Anomaly</th><th>Status</th><th>Impact</th><th>Executed By</th><th>At</th></tr></thead>
+      <tbody>
+      {% for a in history %}
+      <tr>
+        <td>
+          <div style="font-weight:700;font-size:.8rem">{{ a.anomaly_title }}</div>
+          <div style="font-family:var(--font-mono);font-size:.6rem;color:var(--muted)">{{ a.anomaly_id }}</div>
+        </td>
+        <td><span class="badge {% if a.status=='approved' or a.status=='executed' %}badge-good{% elif a.status=='rejected' %}badge-expired{% else %}badge-info{% endif %}">{{ a.status }}</span></td>
+        <td style="font-weight:700">₹{{ "%.0f"|format(a.impact_inr) }}</td>
+        <td style="font-family:var(--font-mono);font-size:.68rem">{{ a.executed_by }}</td>
+        <td style="font-family:var(--font-mono);font-size:.65rem;color:var(--muted)">{{ (a.executed_at or '')[:16] }}</td>
+      </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endif %}
+
+{% endblock %}
+{% block scripts %}
+<script>
+const fmt = n => '₹' + Number(n).toLocaleString('en-IN',{maximumFractionDigits:0});
+const fmtPct = n => Number(n).toFixed(1)+'%';
+const rc = s => s>=75?'critical':s>=50?'high':s>=25?'medium':'low';
+
+const steps=['detect','diagnose','recommend','execute'];
+let stepIdx=0, stepTimer;
+
+function setStep(i){
+  steps.forEach((s,j)=>{
+    const el=document.getElementById('step-'+s);
+    el.className='loop-step'+(j<i?' done':j===i?' active':'');
+  });
+}
+
+const msgs=[
+  ['Querying inventory signals...','Reading vw_ExpiredBatches, vw_ExpiringBatches'],
+  ['Calculating financial exposure...','Aggregating batch values × unit prices'],
+  ['Detecting anomalies...','Cross-referencing billing + stock patterns'],
+  ['Building financial model...','Projecting 30-day before/after scenarios'],
+  ['Generating recovery actions...','Classifying by severity, staging approvals'],
+];
+let msgIdx=0, msgTimer;
+
+async function runScan(){
+  const btn=document.getElementById('scanBtn');
+  const status=document.getElementById('scanStatus');
+  btn.disabled=true;
+  status.textContent='Scanning all financial signals...';
+  status.className='scan-status running';
+
+  // reset
+  ['riskPanel','kpiRow','execBox','finModel','varianceBox','resOpt'].forEach(id=>{
+    document.getElementById(id).classList.remove('show');
+  });
+  document.getElementById('anomalySection').classList.remove('show');
+  document.getElementById('anomalyList').innerHTML='';
+
+  document.getElementById('loader').classList.add('show');
+  stepIdx=0; setStep(0);
+  msgIdx=0;
+  document.getElementById('loaderMsg').textContent=msgs[0][0];
+  document.getElementById('loaderSub').textContent=msgs[0][1];
+  msgTimer=setInterval(()=>{
+    msgIdx=(msgIdx+1)%msgs.length;
+    stepIdx=Math.min(msgIdx, steps.length-1); setStep(stepIdx);
+    document.getElementById('loaderMsg').textContent=msgs[msgIdx][0];
+    document.getElementById('loaderSub').textContent=msgs[msgIdx][1];
+  },2500);
+
+  try{
+    const res=await fetch('/api/agent/analyze',{method:'POST'});
+    const data=await res.json();
+    clearInterval(msgTimer);
+    document.getElementById('loader').classList.remove('show');
+    if(!data.ok) throw new Error(data.error);
+    setStep(4);
+    render(data.result);
+    status.textContent='Last scan: '+new Date().toLocaleTimeString();
+    status.className='scan-status';
+  }catch(e){
+    clearInterval(msgTimer);
+    document.getElementById('loader').classList.remove('show');
+    status.textContent='Error: '+e.message;
+    status.className='scan-status';
+  }
+  btn.disabled=false;
+}
+
+function render(r){
+  // risk
+  const cls=rc(r.risk_score);
+  document.getElementById('riskNum').textContent=r.risk_score;
+  document.getElementById('riskNum').className='risk-num '+cls;
+  document.getElementById('riskFill').style.width=r.risk_score+'%';
+  document.getElementById('riskFill').className='risk-fill '+cls;
+  document.getElementById('agentVerdict').textContent=r.agent_verdict;
+  document.getElementById('riskPanel').classList.add('show');
+
+  // kpis
+  document.getElementById('kpiLoss').textContent=fmt(r.total_confirmed_loss_inr||0);
+  document.getElementById('kpiRisk').textContent=fmt(r.total_at_risk_inr||0);
+  document.getElementById('kpiRecovery').textContent=fmt(r.cost_savings_potential_inr||0);
+  const fm=r.financial_model||{};
+  document.getElementById('kpiProj').textContent=fmt(fm.projected_loss_next_30_days||0);
+  document.getElementById('kpiEff').textContent=fmtPct(fm.inventory_efficiency_pct||0);
+  document.getElementById('kpiCount').textContent=(r.anomalies||[]).length;
+  document.getElementById('kpiRow').classList.add('show');
+
+  // exec
+  document.getElementById('execText').textContent=r.summary;
+  document.getElementById('execBox').classList.add('show');
+
+  // anomalies
+  const anomalies=(r.anomalies||[]).sort((a,b)=>({critical:0,high:1,medium:2,low:3}[a.severity]||4)-({critical:0,high:1,medium:2,low:3}[b.severity]||4));
+  document.getElementById('anomalyCount').textContent=anomalies.length;
+  if(anomalies.length){
+    document.getElementById('anomalySection').classList.add('show');
+    anomalies.forEach((a,i)=>{
+      document.getElementById('anomalyList').appendChild(buildCard(a,i));
+    });
+  }
+
+  // financial model
+  if(fm && Object.keys(fm).length){
+    const grid=document.getElementById('fmGrid');
+    grid.innerHTML='';
+    [
+      ['Monthly Revenue Est.',fmt(fm.current_monthly_revenue_est||0),'var(--accent)'],
+      ['Projected 30d Loss',fmt(fm.projected_loss_next_30_days||0),'var(--red)'],
+      ['Recovery Potential',fmt(fm.recovery_potential_inr||0),'var(--green)'],
+      ['Inventory Efficiency',fmtPct(fm.inventory_efficiency_pct||0),fm.inventory_efficiency_pct>70?'var(--green)':'var(--orange)'],
+      ['Waste Ratio',fmtPct(fm.waste_ratio_pct||0),'var(--orange)'],
+    ].forEach(([label,val,color])=>{
+      const c=document.createElement('div'); c.className='fm-card';
+      c.innerHTML=`<div class="lbl">${label}</div><div class="val" style="color:${color}">${val}</div>`;
+      grid.appendChild(c);
+    });
+    document.getElementById('finModel').classList.add('show');
+  }
+
+  // variance
+  const va=r.variance_analysis;
+  if(va){
+    const vg=document.getElementById('varGrid'); vg.innerHTML='';
+    [['Revenue Variance',va.revenue_variance],['Stock Variance',va.stock_variance],['Discount Variance',va.discount_variance]].forEach(([lbl,txt])=>{
+      if(!txt) return;
+      const c=document.createElement('div'); c.className='var-card';
+      c.innerHTML=`<div class="lbl">${lbl}</div><p>${txt}</p>`; vg.appendChild(c);
+    });
+    document.getElementById('varianceBox').classList.add('show');
+  }
+
+  // resource optimisation
+  const ro=r.resource_optimization||[];
+  if(ro.length){
+    const list=document.getElementById('resList'); list.innerHTML='';
+    ro.forEach(item=>{
+      const d=document.createElement('div'); d.className='res-item';
+      d.innerHTML=`<div><div class="area">${item.area}</div><div class="rec">${item.recommendation}</div></div><div class="res-savings">${fmt(item.estimated_savings_inr||0)}</div>`;
+      list.appendChild(d);
+    });
+    document.getElementById('resOpt').classList.add('show');
+  }
+}
+
+function buildCard(a, idx){
+  const div=document.createElement('div');
+  div.className=`anomaly ${a.severity}`;
+  div.style.animationDelay=(idx*60)+'ms';
+  div.id='ano-'+a.id;
+  const albl={auto_execute:'⚡ Auto-executable',stage_for_approval:'⏳ Stage for approval',alert_only:'🔔 Alert only'}[a.action_type]||a.action_type;
+  const acls={auto_execute:'auto',stage_for_approval:'stage',alert_only:'alert'}[a.action_type]||'';
+  const items=(a.affected_items||[]).map(t=>`<span class="tag-chip">${t}</span>`).join('');
+  const urgency=a.urgency_days!=null?`<div class="urgency">⏱ Act within ${a.urgency_days} days</div>`:'';
+  div.innerHTML=`
+    <div class="ano-top">
+      <div style="flex:1">
+        <div class="ano-id-row">
+          <span class="ano-id">${a.id}</span>
+          <span class="sev-badge ${a.severity}">${a.severity}</span>
+          <span class="type-badge">${(a.type||'').replace(/_/g,' ')}</span>
+        </div>
+        <div class="ano-title">${a.title}</div>
+        <div class="ano-desc">${a.description}</div>
+        ${a.math_breakdown?`<div class="math-line">🧮 ${a.math_breakdown}</div>`:''}
+        ${urgency}
+      </div>
+      <div class="impact-chip">
+        <div class="impact-lbl">Financial Impact</div>
+        <div class="impact-val">${fmt(a.financial_impact_inr||0)}</div>
+        ${a.savings_if_actioned_inr?`<div style="font-family:var(--font-mono);font-size:.6rem;color:var(--green)">Save ${fmt(a.savings_if_actioned_inr)}</div>`:''}
+      </div>
+    </div>
+    <div class="ano-body">
+      <div class="info-block"><div class="ib-lbl">Root Cause</div><p>${a.root_cause}</p></div>
+      <div class="info-block"><div class="ib-lbl">Recommended Action</div><p class="accent">${a.recommended_action}</p></div>
+      <div class="ba-row">
+        <div class="ba-box before"><div class="ba-head">Without Intervention</div>${a.before_scenario}</div>
+        <div class="ba-box after"><div class="ba-head">With Action Executed</div>${a.after_scenario}</div>
+      </div>
+      ${items?`<div class="info-block" style="grid-column:1/-1"><div class="ib-lbl">Affected Items</div><div class="tags-row">${items}</div></div>`:''}
+    </div>
+    <div class="ano-footer">
+      <span class="action-lbl ${acls}">${albl}</span>
+      <div class="ano-btns">
+        ${a.action_type==='alert_only'?`<button class="btn btn-ghost btn-sm" disabled>Acknowledged</button>`:`
+        <button class="btn btn-green btn-sm" id="exec-${a.id}" onclick="execAction('${a.id}','${a.title}','${a.action_type}','${a.severity}',${a.financial_impact_inr||0},${JSON.stringify(a.affected_items||[])},this)">
+          ${a.action_type==='auto_execute'?'Execute Now':'Stage for Approval'}
+        </button>`}
+      </div>
+    </div>`;
+  return div;
+}
+
+async function execAction(id,title,type,severity,impact,items,btn){
+  btn.disabled=true; btn.textContent='Processing...';
+  const endpoint = type==='auto_execute'?'/api/agent/action':'/api/agent/stage';
+  try{
+    const res=await fetch(endpoint,{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({anomaly_id:id,title,action_type:type,severity,impact_inr:impact,affected_items:items})
+    });
+    const data=await res.json();
+    if(data.ok){
+      btn.textContent= type==='auto_execute'?'✓ Executed':'✓ Staged';
+      btn.className='btn btn-ghost btn-sm';
+      btn.disabled=true;
+    } else { btn.disabled=false; btn.textContent='Retry'; }
+  }catch(e){ btn.disabled=false; btn.textContent='Retry'; }
+}
+
+async function approveAction(id, btn){
+  btn.disabled=true; btn.textContent='Approving...';
+  const res=await fetch(`/api/agent/approve/${id}`,{method:'POST'});
+  const data=await res.json();
+  if(data.ok){ document.getElementById('pending-row-'+id)?.remove(); }
+  else { btn.disabled=false; btn.textContent='Approve'; }
+}
+
+async function rejectAction(id, btn){
+  btn.disabled=true;
+  const res=await fetch(`/api/agent/reject/${id}`,{method:'POST'});
+  const data=await res.json();
+  if(data.ok){ document.getElementById('pending-row-'+id)?.remove(); }
+  else { btn.disabled=false; }
+}
+</script>
+{% endblock %}
